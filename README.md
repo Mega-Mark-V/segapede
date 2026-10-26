@@ -9,6 +9,7 @@ On Linux, you can use the following commands to convert `SEGAPEDE.S` into a bina
 $ tr -d '\000' < SEGAPEDE.S > SEGAPEDE.S2
 $ srec_cat SEGAPEDE.S2 -motorola -o SEGAPEDE.BIN -binary
 ```
+Or run `_S2BIN.sh` in the `SEGAPEDE` folder.
 
 # Modifications made:
 
