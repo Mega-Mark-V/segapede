@@ -2,7 +2,7 @@
 # Building
 
 * Mount this folder into DOSBOX onto `C:`, then run `setup.bat`. This'll put you into a FreeDOS environment with the variables set up.
-* Go into the `SEGAPEDE` directory and run `make`. The ROM will output as a M68K COFF file (`SEGAPEDE.OUT`). You can run this in an emulator by trimming the top of the file.
+* Go into the `SEGAPEDE` directory and run `make rom`. The ROM will output as a M68K COFF file (`SEGAPEDE.OUT`), and a Motorolla S-Record file (`SEGAPEDE.S`).
 
 # Modifications made:
 
