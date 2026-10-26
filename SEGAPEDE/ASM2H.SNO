@@ -1,0 +1,17 @@
+        &TRIM = 1
+READ1   LINE = INPUT                :F(END)
+        LINE POS(0) ';'             :S(READ1)
+        EQ(LEN(LINE), 0)            :F(FOUND)
+        OUTPUT =                    :(READ1)
+FOUND   OUTPUT = 'global unsigned short ' LINE '[]'
+        OUTPUT = CHAR(35) 'ifdef DEFINE_GLOBALS'
+        OUTPUT = ' = {'
+READ2   LINE = INPUT                :F(DONE)
+        LINE 'dc.w    ' = ''
+AGAIN   LINE CHAR(36) = '0x'        :S(AGAIN)
+        OUTPUT = LINE ','           :(READ2)
+DONE    OUTPUT = '}'
+        OUTPUT = CHAR(35) 'endif'
+        OUTPUT = ';'                :(READ1)
+END
+

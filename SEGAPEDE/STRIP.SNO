@@ -1,0 +1,17 @@
+        &TRIM = 1
+        COUNT = 0
+        COUNT1 = 0
+READ    LINE = INPUT                    :F(DONE)
+        LINE2 = LINE
+        LINE2 POS(0) SPAN(' ') ';'      :S(READ)
+TRY     LINE2 BREAK('$') '$' =          :F(W)
+        EQ(COUNT,10000)                 :F(UNEQ)
+        COUNT1 = COUNT1 + 1
+        COUNT = 0
+UNEQ    COUNT = COUNT + 1               :(TRY)
+W       OUTPUT = LINE                   :(READ)
+DONE    EQ(COUNT1,0)                    :S(D1)
+        OUTPUT = ';  ' COUNT1 COUNT ' bytes present'    :(END)
+D1      OUTPUT = ';  ' COUNT ' bytes present'
+END
+

@@ -1,0 +1,599 @@
+#
+#       This is the make file for the Segapede demo
+#
+#       Opus Make, Sierra C
+#
+
+#.MISER_MODE disk		# MDT: Commented out, had issues in DOSBOX
+
+DRV=      c:
+ROOT=     $(DRV)\segapede
+CDIR=     $(ROOT)\c
+INCDIR=   $(ROOT)\inc
+ASMDIR=   $(ROOT)\asm
+OBJDIR=   $(ROOT)\obj
+
+ARTDRV=   c:			# MDT: Directed to a directory on C drive to make setup simpler
+ARTROOT=  $(ARTDRV)\spart	# MDT: Directed to a directory on C drive to make setup simpler
+ARTDIR=   $(ARTROOT)\art
+SPRDIR=   $(ARTROOT)\sprite
+ANIMDIR=  $(ARTROOT)\anim
+
+TMPDIR=   c:\temp\		# MDT: Directed to a directory on C drive to make setup simpler
+
+SNOBOL= c:\snobol\snobol4
+
+SIERRA= $(DRV)\sierra\bin
+CC=     $(SIERRA)\com68
+COPTS=  -I$(INCDIR) -Q -fC3 -l -OAa2f0l4p1r2x1 -g1
+
+%if 0
+LIST=   -p80 -w132
+%else
+LIST=   -l
+%endif
+
+ASM=    $(SIERRA)\asm68
+ASMOPTS=$(LIST) -Q -k
+
+
+.PATH.c=$(CDIR)
+.PATH.h=$(INCDIR)
+.PATH.s=$(ASMDIR)
+.PATH.i=$(ASMDIR)
+.PATH.o=$(OBJDIR)
+.PATH.asm=$(ASMDIR)
+.PATH.dgt=$(ARTDIR)
+.PATH.spr=$(SPRDIR)
+.PATH.anm=$(ANIMDIR)
+
+
+OBJ=    \
+        anim.o \
+        defs.o \
+        defs2.o \
+        draw.o \
+        gems.o \
+        io.o \
+        logo.o \
+        math.o \
+        player.o \
+        screen.o \
+        segapede.o \
+        segments.o \
+        startup.o \
+        title.o \
+        utils.o \
+        vectors.o
+
+
+
+ART=    zipart.h zipart2.h zipsegs.h
+
+.c.o:
+        *$(CC) $(CDIR)\$[r,$*].c $(TMPDIR)\$[r,$*].s $(COPTS) >> err 2>>&1
+        *$(ASM) $(ASMOPTS) $(TMPDIR)\$[r,$*].s -o$(OBJDIR)\$[r,$*].o
+        del $(TMPDIR)\$[r,$*].s
+
+.s.o:
+        *$(ASM) $(ASMOPTS) $(ASMDIR)\$[r,$*].s -o$(OBJDIR)\$[r,$*].o
+
+.c.s:
+        *$(CC) $(CDIR)\$[r,$*].c $(ASMDIR)\$[r,$*].s $(COPTS)
+
+.asm.o:
+        *$(ASM)k $(ASMOPTS) $(ASMDIR)\$[r,$*].asm -o$(OBJDIR)\$[r,$*].o
+
+.spr.h:
+        -81 *cmmje <<<
+3011010
+%foreach x in $(.SOURCES)
+%if $[r,$(x)] != $[r,$(.TARGET)]
+l $(ARTDIR)\$[r,$(x)].dgt
+ms $(TMPDIR)\$[r,$(x)].map
+c$[r,$(x)]
+%endif
+%end
+s $(TMPDIR)\$[r,$(.TARGET)].cel
+$[r,$(.TARGET)]
+q
+<   >> err 2>>&1
+        copy $(SPRDIR)\$[r,$(.TARGET)].spr $(TMPDIR)\$[r,$(.TARGET)].z
+        %foreach x in $(.SOURCES)
+        %if $[r,$(x)] != $[r,$(.TARGET)]
+        type $(TMPDIR)\$[r,$(x)].map >> $(TMPDIR)\$[r,$(.TARGET)].z
+        %endif
+        %end
+        del $(TMPDIR)\*.map
+        *$(SNOBOL) < <
+
+        &TRIM = 1
+READ1   LINE = INPUT                :F(END)
+        LINE POS(0) ';'             :S(READ1)
+        OUTPUT = 'global unsigned short ' LINE '[]'
+        OUTPUT = CHAR(35) 'ifdef DEFINE_GLOBALS'
+        OUTPUT = ' = {'
+READ2   LINE = INPUT                :F(DONE)
+        LINE 'dc.w    ' = ''
+AGAIN   LINE CHAR(36) = '0x'        :S(AGAIN)
+        OUTPUT = LINE ','           :(READ2)
+DONE    OUTPUT = '}'
+        OUTPUT = CHAR(35) 'endif'
+        OUTPUT = ';'
+END
+
+< /I=$(TMPDIR)\$[r,$(.TARGET)].cel /O=$(TMPDIR)\$[r,$(.TARGET)].xxx
+        del $(TMPDIR)\$[r,$(.TARGET)].cel
+        type $(TMPDIR)\$[r,$(.TARGET)].xxx >> $(TMPDIR)\$[r,$(.TARGET)].z
+        del $(TMPDIR)\$[r,$(.TARGET)].xxx
+        *$(SNOBOL) < <
+
+        &TRIM = 1
+        FNAME = '0123456789_' &LCASE
+        NUMS = '0123456789,'
+        NAMEPAT = BREAK(FNAME) SPAN(FNAME) . NAME
+        CGPAT = BREAK(NUMS) SPAN(NUMS) . CG
+        CONTACTPAT = BREAK(NUMS) SPAN(NUMS) . CONTACT
+        ENTRIES = TABLE()
+        CENTRIES = TABLE()
+SET     LINE = INPUT
+        OUTPUT = LINE
+        LINE POS(0) 'OFFSETS'              :F(SET)
+LOAD    LINE = REPLACE(INPUT, &UCASE, &LCASE)
+        OUTPUT = LINE
+        LINE NAMEPAT =                      :F(FIX)
+        LINE CGPAT =
+        LINE CONTACTPAT =
+        ENTRIES[NAME] = CG
+        CENTRIES[NAME] = CONTACT            :(LOAD)
+FIX     LINE = INPUT                        :F(END)
+        OUTPUT = LINE
+        LINE 'Map table'                    :F(FIX)
+        OUTPUT = INPUT
+        OUTPUT = INPUT
+        LINE = INPUT
+        OUTPUT = LINE
+        LINE 'global unsigned short ' NAMEPAT
+        OUTPUT = INPUT
+        OUTPUT = INPUT
+        OUTPUT = INPUT
+        LINE = INPUT
+        LINE '0x00,0x00' = ENTRIES[NAME]
+        OUTPUT = LINE
+        LINE ENTRIES[NAME] = CENTRIES[NAME]
+        OUTPUT = LINE                       :(FIX)
+END
+
+< /I=$(TMPDIR)\$[r,$(.TARGET)].z /O=$(INCDIR)\$[r,$(.TARGET)].h
+        del $(TMPDIR)\$[r,$(.TARGET)].z
+
+.anm.h:
+        del $(TMPDIR)\foo.foo
+        %foreach x in $(.SOURCES)
+        %if $[r,$(x)] != $[r,$(.TARGET)]
+        type $(x) >> $(TMPDIR)\foo.foo
+        %endif
+        %end
+        *$(SNOBOL) < <
+        &TRIM = 1
+        FNAME = '0123456789_' &LCASE &UCASE
+        NUMS = '0123456789'
+        NAMEPAT = BREAK(FNAME) SPAN(FNAME) . NAME
+        NUMPAT = BREAK(NUMS) SPAN(NUMS) . NUM
+        STARTPOINTS = TABLE()
+        LINECOUNT = 0
+        OUTPUT = 'global AnimState animations[]'
+        OUTPUT = CHAR(35) 'ifdef DEFINE_GLOBALS'
+        OUTPUT = ' = {'
+LOOK    LINE = INPUT                                    :F(DONE)
+        LINE POS(0) 'ANIMATION' NAMEPAT                 :F(LOOK)
+        GROUPNAME = NAME
+        STARTPOINTS[GROUPNAME] = LINECOUNT
+*  Get the next script line
+        LINE = INPUT                                    :F(ERROR)
+AGAIN   LINECOUNT = LINECOUNT + 1
+*  Pick off the line number
+        LINE NUMPAT =                                   :F(ERROR)
+        LINENO = NUM
+*   Pick off the frame name
+        LINE NAMEPAT =                                  :F(ERROR)
+        FRAMENAME = NAME
+*   Pick off the frame art set
+        LINE NAMEPAT =                                  :F(ERROR)
+        ARTSETNAME = NAME
+*   Pick off the duration
+        LINE NUMPAT =                                   :F(ERROR)
+        TIME = NUM
+*   Eat up any spaces
+CLIP    LINE ' ' =                                      :S(CLIP)
+*   If the 'next' field starts with a colon, it's a reference to another sequence
+        LINE ':' =                                      :S(NAMED)
+        LINE NUMPAT =
+        NEXTLINE = NUM + STARTPOINTS[GROUPNAME] - 1     :(WRITE)
+NAMED   LINE NAMEPAT =                                  :F(ERROR)
+        NEXTLINE = STARTPOINTS[NAME]                    :F(ERROR)
+        LINE '[' =                                      :F(WRITE)
+        LINE NUMPAT                                     :F(ERROR)
+        NEXTLINE = NEXTLINE + NUM - 1
+WRITE   OUTPUT = '{' FRAMENAME ',' TIME ',' NEXTLINE ',' ARTSETNAME '},'
+        LINE = INPUT                                    :F(ERROR)
+        LINE 'END'                                      :F(AGAIN) S(LOOK)
+DONE    OUTPUT = '}'
+        OUTPUT = CHAR(35) 'endif'
+        OUTPUT = ';'
+        A = CONVERT(STARTPOINTS,"ARRAY")                :F(ERROR)
+LOOP    OUTPUT = CHAR(35) 'define ANIM_' A[N,1] ' ' A[N,2]
+        N = N + 1
+        DIFFER(A[N,1])                                  :S(LOOP) F(END)
+ERROR   SCREEN = 'Malformed input'
+        &CODE = 10
+END
+
+< /I=$(TMPDIR)\foo.foo /O=$(TMPDIR)\foo.bar
+        del $(TMPDIR)\foo.foo
+        copy $(ANIMDIR)\$[r,$(.TARGET)].anm+$(TMPDIR)\foo.bar $(INCDIR)\$[r,$(.TARGET)].h
+        del $(TMPDIR)\foo.bar
+
+all:    segapede loadall
+
+art:    $(ART)
+
+rom:    segapede.out
+        *$(SIERRA)\sldr -S -t segapede.out segapede.s
+        *s2bin segapede.s segapede.bin
+
+#loadall:
+#        segaload segapede.out
+#loadall:
+#        *$(SIERRA)\sldr -S -t segapede.out segapede.s
+#        *s2bin segapede.s segapede.bin
+loadall:
+        *erx68k loadngo
+        segaload segapede.out
+
+
+segapede: segapede.out
+
+segapede.out: $(OBJ)
+        *$(SIERRA)\link68 -i < <
+$**
+-lc
+-o $@
+-m
+-E
+-P
+MEMORY {
+        vectorrom:  ORG(0)          LEN(0x000200)
+        rom:        ORG(0x200)      LEN(0x0ffe00)
+        ram:        ORG(0x00ff8000) LEN(0x008000)
+}
+SECTIONS {
+        .vectors: {} > vectorrom
+        .text:    {} > rom
+        .data:    {} > rom
+        .bss:     {} > ram
+        .vdp: ORG(0xc00000) DSECT {}
+}
+<
+
+
+
+anim.o:         [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                 io.h \
+                 vdp.h \
+                 anims.h \
+                ]
+
+anims.h:        \
+                zip.anm
+
+
+defs.o:         [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 zipart.h \
+                 zipart2.h \
+                 zipsegs.h \
+                 anims.h \
+                ]
+
+defs2.o:        [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 zipart.h \
+                 zipart2.h \
+                 zipsegs.h \
+                 anims.h \
+                ]
+
+draw.o:         [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                 vdp.h \
+                 io.h \
+                ]
+
+gems.o:         [ \
+                gems.asm \
+                z80.asm \
+                pbank.asm \
+                mbank.asm \
+                sbank.asm \
+                dbank.asm \
+                ]
+
+io.o:           [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                 io.h \
+                 vdp.h \
+                ]
+
+logo.o:         [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                 io.h \
+                 vdp.h \
+                ]
+
+math.o:         [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                ]
+
+player.o:       [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                 io.h \
+                 anims.h \
+                 params.h \
+                ]
+
+screen.o:       [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                 io.h \
+                 map.h \
+                 charset.h \
+                 blocks.h \
+                 b_playfl.h \
+                ]
+
+segapede.o:     [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                 io.h \
+                 anims.h \
+                 gems.h \
+                ]
+
+segments.o      [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                 io.h \
+                 anims.h \
+                 floors.h \
+                 coll.h \
+                 params.h \
+                ]
+
+startup.o:      [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 vdp.h \
+                 proto.h \
+                 gems.h \
+                ]
+
+title.o:        [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                 io.h \
+                ]
+
+utils.o:        [ \
+                 defs.h \
+                 types.h \
+                 vars.h \
+                 proto.h \
+                 io.h \
+                ]
+
+vectors.o:      [ \
+                ]
+
+zipart.h:       [ \
+                 zwlk_01.dgt \
+                 zwlk_02.dgt \
+                 zwlk_03.dgt \
+                 zwlk_04.dgt \
+                 zwlk_05.dgt \
+                 zwlk_06.dgt \
+                 zwlk_07.dgt \
+                 zwlk_08.dgt \
+                 zwlk_09.dgt \
+                 zwlk_10.dgt \
+                 zup22_01.dgt \
+                 zup22_02.dgt \
+                 zup22_03.dgt \
+                 zup22_04.dgt \
+                 zup22_05.dgt \
+                 zup22_06.dgt \
+                 zup22_07.dgt \
+                 zup22_08.dgt \
+                 zup22_09.dgt \
+                 zup22_10.dgt \
+                 zup45_01.dgt \
+                 zup45_02.dgt \
+                 zup45_03.dgt \
+                 zup45_04.dgt \
+                 zup45_05.dgt \
+                 zup45_06.dgt \
+                 zup45_07.dgt \
+                 zup45_08.dgt \
+                 zup45_09.dgt \
+                 zup45_10.dgt \
+                 zup66_01.dgt \
+                 zup66_02.dgt \
+                 zup66_03.dgt \
+                 zup66_04.dgt \
+                 zup66_05.dgt \
+                 zup66_06.dgt \
+                 zup66_07.dgt \
+                 zup66_08.dgt \
+                 zup66_09.dgt \
+                 zup66_10.dgt \
+                 zup90_01.dgt \
+                 zup90_02.dgt \
+                 zup90_03.dgt \
+                 zup90_04.dgt \
+                 zup90_05.dgt \
+                 zup90_06.dgt \
+                 zup90_07.dgt \
+                 zup90_08.dgt \
+                 zup90_09.dgt \
+                 zup90_10.dgt \
+                ]
+
+zipart2.h:      [ \
+                 zbrd_01.dgt \
+                 zbrd_02.dgt \
+                 zbrd_03.dgt \
+                 zbrd_04.dgt \
+                 zbrd_05.dgt \
+                 zbrd_06.dgt \
+                 zbrd_07.dgt \
+                 zbrd_08.dgt \
+                 zbrd_09.dgt \
+                 zbrd_10.dgt \
+                 zbrd_11.dgt \
+                 zd30_01.dgt  \
+                 zd30_02.dgt  \
+                 zd30_03.dgt  \
+                 zd30_04.dgt  \
+                 zd30_05.dgt  \
+                 zd30_06.dgt  \
+                 zd30_07.dgt  \
+                 zd30_08.dgt  \
+                 zd30_09.dgt  \
+                 zd30_10.dgt  \
+                 zd60_01.dgt  \
+                 zd60_02.dgt  \
+                 zd60_03.dgt  \
+                 zd60_04.dgt  \
+                 zd60_05.dgt  \
+                 zd60_06.dgt  \
+                 zd60_07.dgt  \
+                 zd60_08.dgt  \
+                 zd60_09.dgt  \
+                 zd60_10.dgt  \
+                 zsh00_01.dgt \
+                 zsh00_02.dgt \
+                 zsh00_03.dgt \
+                 zjmpu_01.dgt \
+                 zsjmp_01.dgt \
+                 zsjmp_02.dgt \
+                 zjmpa_01.dgt \
+                 zjmpd_01.dgt \
+                 zjmpd_02.dgt \
+                 zf00_01.dgt  \
+                 zf00_02.dgt \
+                 zfu45_01.dgt \
+                 zfd90_01.dgt \
+                 zdk00_01.dgt \
+                 zdk00_02.dgt \
+                 zdk00_03.dgt \
+                 zdk00_04.dgt \
+                 zdead_01.dgt \
+                 zdead_02.dgt \
+                 zdead_03.dgt \
+                 zdead_04.dgt \
+                ]
+
+zipsegs.h:      [ \
+                 sa01_l00.dgt \
+                 sa01_u66.dgt \
+                 sa01_u45.dgt \
+                 sa01_u22.dgt \
+                 sa01_d90.dgt \
+                 sa01_d66.dgt \
+                 sa01_d45.dgt \
+                 sa01_d22.dgt \
+                 sb01_l00.dgt \
+                 sb01_u66.dgt \
+                 sb01_u45.dgt \
+                 sb01_u22.dgt \
+                 sb01_d90.dgt \
+                 sb01_d66.dgt \
+                 sb01_d45.dgt \
+                 sb01_d22.dgt \
+                 sc01_l00.dgt \
+                 sc01_u66.dgt \
+                 sc01_u45.dgt \
+                 sc01_u22.dgt \
+                 sc01_d90.dgt \
+                 sc01_d66.dgt \
+                 sc01_d45.dgt \
+                 sc01_d22.dgt \
+                 blt00_01.dgt \
+                 blt00_02.dgt \
+                 bltx_01.dgt \
+                 bltx_02.dgt \
+                 bltx_03.dgt \
+                 boom_01.dgt \
+                 boom_02.dgt \
+                 boom_03.dgt \
+                 boom_04.dgt \
+                 boom_05.dgt \
+                 boom_06.dgt \
+                 boom_07.dgt \
+                 boom_08.dgt \
+                 boom_09.dgt \
+                 boom_10.dgt \
+                 flag_00.dgt \
+                 flag_01.dgt \
+                 flag_02.dgt \
+                 flag_03.dgt \
+                 flag_04.dgt \
+                 flag_05.dgt \
+                 flag_06.dgt \
+                 e_spk_01.dgt \
+                 e_spk_02.dgt \
+                 e_spk_03.dgt \
+                 e_spk_04.dgt \
+                 e_spk_05.dgt \
+                 e_spk_06.dgt \
+                 e_elec.dgt \
+                 lht_01.dgt \
+                 lht_02.dgt \
+                 lht_03.dgt \
+                 lht_04.dgt \
+                 lht_05.dgt \
+                ]
+
+

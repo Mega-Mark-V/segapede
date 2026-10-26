@@ -1,0 +1,9 @@
+
+#define ZIP_ACCELERATION         0x00004000
+#define ZIP_DECELERATION         0x00008000
+#define ZIP_AIR_ACCELERATION     0x00004000
+#define ZIP_AIR_DECELERATION     0x00000000
+#define ZIP_SPEED_LIMIT          0x00070000
+#define JUMP_IMPULSE             0x00040000
+#define GRAVITY                  0x00005000
+

@@ -1,0 +1,227 @@
+#define VRAMWR 0x40000000
+#define VRAMRD 0x00000000
+#define VSRAMWR 0x40000010
+#define VSRAMRD 0x00000010
+#define CRAMWR 0xc0000000
+#define CRAMRD 0x00000020
+
+
+#define LOGO1 (FG+0x61c+0x0000)
+#define LOGO2 (FG+0x61c+0x0080)
+#define LOGO3 (FG+0x61c+0x0100)
+#define LOGO4 (FG+0x61c+0x0180)
+
+
+#pragma dsection .vectors
+
+VoidFuncPtr vectors[]= {
+  (VoidFuncPtr)0xfffff800,  /*  0 initial supervisor stack pointer */
+  main,                     /*  1 initial program counter */
+  ErrorHandler,             /*  2 Bus error */
+  ErrorHandler,             /*  3 Address error */
+  ErrorHandler,             /*  4 Illegal instruction */
+  ErrorHandler,             /*  5 Division by zero */
+  ErrorHandler,             /*  6 CHK instruction */
+  ErrorHandler,             /*  7 TRAPV instruction */
+  ErrorHandler,             /*  8 Privilege violation */
+  ErrorHandler,             /*  9 Trace */
+  ErrorHandler,             /* 10 Line A emulator */
+  ErrorHandler,             /* 11 Line F emulator */
+  ErrorHandler,             /* 12 Reserved */
+  ErrorHandler,             /* 13 Reserved */
+  ErrorHandler,             /* 14 Reserved */
+  ErrorHandler,             /* 15 Uninitialized interrupt */
+  ErrorHandler,             /* 16 Reserved */
+  ErrorHandler,             /* 17 Reserved */
+  ErrorHandler,             /* 18 Reserved */
+  ErrorHandler,             /* 19 Reserved */
+  ErrorHandler,             /* 20 Reserved */
+  ErrorHandler,             /* 21 Reserved */
+  ErrorHandler,             /* 22 Reserved */
+  ErrorHandler,             /* 23 Reserved */
+  ErrorHandler,             /* 24 Spurious interrupts */
+  ErrorHandler,             /* 25 Level 1 autovector */
+  ErrorHandler,             /* 26 Level 2 autovector */
+  ErrorHandler,             /* 27 Level 3 autovector */
+  HBLHandler,               /* 28 Level 4 autovector */
+  ErrorHandler,             /* 29 Level 5 autovector */
+  VBLHandler,               /* 30 Level 6 autovector */
+  ErrorHandler,             /* 31 Level 7 autovector */
+  ErrorHandler,             /* 32 Reserved */
+  ErrorHandler,             /* 33 Reserved */
+  ErrorHandler,             /* 34 Reserved */
+  ErrorHandler,             /* 35 Reserved */
+  ErrorHandler,             /* 36 Reserved */
+  ErrorHandler,             /* 37 Reserved */
+  ErrorHandler,             /* 38 Reserved */
+  ErrorHandler,             /* 39 Reserved */
+  ErrorHandler,             /* 40 Reserved */
+  ErrorHandler,             /* 41 Reserved */
+  ErrorHandler,             /* 42 Reserved */
+  ErrorHandler,             /* 43 Reserved */
+  ErrorHandler,             /* 44 Reserved */
+  ErrorHandler,             /* 45 Reserved */
+  ErrorHandler,             /* 46 Reserved */
+  ErrorHandler,             /* 47 Reserved */
+  ErrorHandler,             /* 48 Reserved */
+  ErrorHandler,             /* 49 Reserved */
+  ErrorHandler,             /* 50 Reserved */
+  ErrorHandler,             /* 51 Reserved */
+  ErrorHandler,             /* 52 Reserved */
+  ErrorHandler,             /* 53 Reserved */
+  ErrorHandler,             /* 54 Reserved */
+  ErrorHandler,             /* 55 Reserved */
+  ErrorHandler,             /* 56 Reserved */
+  ErrorHandler,             /* 57 Reserved */
+  ErrorHandler,             /* 58 Reserved */
+  ErrorHandler,             /* 59 Reserved */
+  ErrorHandler,             /* 60 Reserved */
+  ErrorHandler,             /* 61 Reserved */
+  ErrorHandler,             /* 62 Reserved */
+  ErrorHandler,             /* 63 Reserved */
+};
+
+#pragma dsection .coding
+char codingblock1[]=
+  "SEGA MEGA DRIVE "
+  "(C)SEGA 1994 JUN"
+  "JESTER          "
+  "                "
+  "                "
+  "JESTER          "
+  "                "
+  "                "
+  "GM 00001014-00\0";
+char codingblock3[]=
+  "J              ";
+long codingblock4[]= {
+  0x00000000,       /* first ROM address */
+  0x000fffff,       /* last ROM address */
+  0x00ff0000,       /* first RAM address */
+  0x00ffffff        /* last RAM address */
+};
+char codingblock5[]=
+  "                "
+  "                "
+  "                "
+  "                "
+  "JUE            ";
+
+
+#pragma dsection .text
+
+#pragma interrupt VBLHandler
+
+void VBLHandler(){
+  tickCounter++;
+  vblFlag= 1;
+  DoIO();
+}
+
+#pragma interrupt HBLHandler
+
+void HBLHandler(){
+  asm(" and.w #$f0ff,(sp)",4);
+  asm(" or.w #$0500,(sp)",4);
+}
+
+#pragma interrupt ErrorHandler
+#pragma no_return ErrorHandler
+
+void ErrorHandler(){
+  while(1);
+}
+
+
+void WaitTOF(){
+  vblFlag= 0;
+  do {
+    asm(" stop #$2500",4);
+  } while(!vblFlag);
+}
+
+
+void ReadHWControllers(){
+  asm(" move.w  #$2700,SR",4);
+  gemsholdz80();
+  asm(" lea $a10003,a0");
+
+  asm(" move.b #0,(a0)");
+  asm(" nop");
+  asm(" nop");
+  asm(" move.b (a0),d0");
+  asm(" lsl.b #2,d0");
+  asm(" andi.b #$c0,d0");
+
+  asm(" move.b #$40,(a0)");
+  asm(" nop");
+  asm(" nop");
+  asm(" move.b (a0),d1");
+  asm(" andi.b #$3f,d1");
+  asm(" or.b d1,d0");
+  asm(" not.b d0");
+
+
+  asm(" move.b d0,_bStick1");
+  asm(" lea $a10005,a0");
+
+  asm(" move.b #0,(a0)");
+  asm(" nop");
+  asm(" nop");
+  asm(" move.b (a0),d0");
+  asm(" lsl.b #2,d0");
+  asm(" andi.b #$c0,d0");
+
+  asm(" move.b #$40,(a0)");
+  asm(" nop");
+  asm(" nop");
+  asm(" move.b (a0),d1");
+  asm(" andi.b #$3f,d1");
+  asm(" or.b d1,d0");
+  asm(" not.b d0");
+
+
+  asm(" move.b d0,_CurrentStick2");
+  asm(" move.w #$2000,SR");
+  gemsreleasez80();
+
+  StickEdges1= (CurrentStick1^LastStick1)&CurrentStick1;
+  LastStick1= CurrentStick1;
+  StickEdges2= (CurrentStick2^LastStick2)&CurrentStick2;
+  LastStick2= CurrentStick2;
+}
+
+
+void SegaLogo(){
+short *palette;
+int i,j;
+
+  SendBlock32(logoData,FG_CELLS+32,1600);
+  palette= AllocMem(128);
+  for(i= logoColors[0];i<logoColors[1];i++){
+    palette[i]= logoColors[i+2];
+  }
+  SendBlock32(logoMap,LOGO1,24);
+  SendBlock32(logoMap+12,LOGO2,24);
+  SendBlock32(logoMap+24,LOGO3,24);
+  SendBlock32(logoMap+36,LOGO4,24);
+  WaitTOF();
+  FadeIn(palette,45);
+  for(i= 0;i<31;i++)
+    WaitTOF();
+  for(i= 20;i>0;i--){
+    for(j= 0;j<11;j++){
+      palette[2+j]= logoColors[4+i+j];
+    }
+    SendPalettes(palette);
+    WaitTOF();
+    WaitTOF();
+    WaitTOF();
+    WaitTOF();
+  }
+  for(i= 0;i<27;i++)
+    WaitTOF();
+  FadeOut(palette,45);
+  FreeMem(palette);
+}
+
