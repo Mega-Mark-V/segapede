@@ -17,4 +17,5 @@ Or run `_S2BIN.sh` in the `SEGAPEDE` folder.
 * Changed some directories in `MAKEFILE` to all use the same drive
 * Created `SEGAPEDE\OBJ` since the builder does not generate one.
 * Created dummy files (in `SPART`) to make the compiler not regenerate the .H files.
+
 The original source code is included in SEGAPEDE.ZIP.
